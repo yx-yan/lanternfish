@@ -1,0 +1,26 @@
+[project]
+name = "lanternfish"
+version = "0.1.0"
+description = "Your Claude and Codex usage limits, always lit in the macOS menu bar."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = ["rumps>=0.4"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+lanternfish = "lanternfish.cli:main"
+lanternfish-app = "lanternfish.app:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
