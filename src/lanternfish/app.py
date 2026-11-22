@@ -7,7 +7,8 @@ from datetime import datetime
 
 import rumps
 
-from .format import MISSING, header_line, title, window_line
+from . import keychain
+from .format import MISSING, header_line, money_line, title, window_line
 from .providers import PROVIDERS, fetch_all
 from .providers.base import Usage
 
@@ -21,7 +22,8 @@ class LanternfishApp(rumps.App):
         self._lock = threading.Lock()
         self._pending: list[Usage] | None = None
         self._fetching = False
-        self._usages: list[Usage] = [Usage(name=n, short=s) for n, s, _ in PROVIDERS]
+        # Before the first fetch, show only the subscription rows as placeholders.
+        self._usages: list[Usage] = [Usage(name=p.name, short=p.short) for p in PROVIDERS if p.short]
         self._updated: datetime | None = None
         self._rendered_minute: datetime | None = None
         self._render()
@@ -68,11 +70,45 @@ class LanternfishApp(rumps.App):
                 self.menu[f"{usage.name}:error"] = rumps.MenuItem(f"    {MISSING} {usage.error}")
             for i, window in enumerate(usage.windows):
                 self.menu[f"{usage.name}:{i}"] = rumps.MenuItem(f"    {window_line(window)}")
+            for i, value in enumerate(usage.money):
+                self.menu[f"{usage.name}:money{i}"] = rumps.MenuItem(f"    {money_line(value)}")
             self.menu.add(rumps.separator)
         updated = self._updated.strftime("%H:%M") if self._updated else "never"
         self.menu["updated"] = rumps.MenuItem(f"Updated {updated}")
         self.menu["refresh"] = rumps.MenuItem("Refresh now", callback=lambda _: self.refresh(), key="r")
+        keys = rumps.MenuItem("API Keys")
+        for provider in PROVIDERS:
+            if provider.key_account:
+                mark = "✓ " if keychain.get(provider.key_account) else ""
+                keys[provider.key_account] = rumps.MenuItem(
+                    f"{mark}{provider.name}…", callback=self._key_prompt(provider.name, provider.key_account))
+        self.menu["keys"] = keys
         self.menu["quit"] = rumps.MenuItem("Quit Lanternfish", callback=rumps.quit_application, key="q")
+
+    def _key_prompt(self, name: str, account: str):
+        def prompt(_item) -> None:
+            response = rumps.Window(
+                title=f"{name} key",
+                message=KEY_HINTS[account] + "\n\nStored in your macOS Keychain. Leave empty to remove it.",
+                default_text="", ok="Save", cancel="Cancel", dimensions=(360, 24), secure=True,
+            ).run()
+            if not response.clicked:
+                return
+            secret = response.text.strip()
+            if secret:
+                keychain.set(account, secret)
+            else:
+                keychain.delete(account)
+            self._render()
+            self.refresh()
+        return prompt
+
+
+KEY_HINTS = {
+    "anthropic-admin": "Admin API key (sk-ant-admin…) from Claude Console → Settings → Admin keys.",
+    "openai-admin": "Admin key from OpenAI Platform → Organization → Admin keys.",
+    "deepseek": "API key from platform.deepseek.com → API keys.",
+}
 
 
 def main() -> None:
