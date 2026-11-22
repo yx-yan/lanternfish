@@ -7,7 +7,7 @@ from datetime import datetime
 
 import rumps
 
-from . import keychain, login
+from . import keychain, login, single
 from .alerts import AlertTracker
 from .format import MISSING, header_line, money_line, title, window_line
 from .providers import PROVIDERS, fetch_all
@@ -135,6 +135,10 @@ KEY_HINTS = {
 
 
 def main() -> None:
+    lock = single.acquire()
+    if lock is None:
+        print("Lanternfish is already running.")
+        raise SystemExit(0)
     LanternfishApp().run()
 
 
