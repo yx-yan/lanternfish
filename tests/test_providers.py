@@ -8,8 +8,8 @@ import pytest
 
 from lanternfish import providers
 from lanternfish.format import report, title, until
-from lanternfish.providers import base, claude_sub, codex_sub
-from lanternfish.providers.base import ProviderError, Usage
+from lanternfish.providers import Provider, base, claude_sub, codex_sub
+from lanternfish.providers.base import NotConfigured, ProviderError, Usage
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -112,13 +112,18 @@ def test_one_failing_provider_does_not_hide_the_other(monkeypatch):
         raise KeyError("shape changed")
 
     ok = codex_sub.parse(load("codex_usage.json"))
+    def unconfigured():
+        raise NotConfigured
+
     monkeypatch.setattr(providers, "PROVIDERS", [
-        ("Claude", "C", broken), ("Codex", "X", lambda: ok), ("Other", "O", crashing),
+        Provider("Claude", "C", broken), Provider("Codex", "X", lambda: ok),
+        Provider("Other", "O", crashing), Provider("DeepSeek API", None, unconfigured, "deepseek"),
     ])
     usages = providers.fetch_all()
     assert usages[0].error == "token expired"
     assert usages[1].error is None
     assert usages[2].error == "unexpected error: KeyError"
+    assert len(usages) == 3  # the unconfigured provider is left out
     assert title(usages) == "C — · X 58% · O —"
 
 

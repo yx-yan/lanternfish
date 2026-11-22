@@ -16,6 +16,10 @@ class ProviderError(Exception):
     """A provider could not produce usage; the message is shown in the menu."""
 
 
+class NotConfigured(Exception):
+    """The provider has no credential set up; it is left out of the menu entirely."""
+
+
 @dataclass
 class Window:
     label: str                     # "5-hour", "Weekly"
@@ -24,10 +28,18 @@ class Window:
 
 
 @dataclass
+class Money:
+    label: str                     # "This month", "Balance"
+    amount: float
+    currency: str                  # ISO code, e.g. "USD", "CNY"
+
+
+@dataclass
 class Usage:
-    name: str                      # "Claude", "Codex"
-    short: str                     # one-letter tag for the menu bar title
+    name: str                      # "Claude", "Codex", "Anthropic API"
+    short: str | None              # tag for the menu bar title; None keeps it out of the title
     windows: list[Window] = field(default_factory=list)
+    money: list[Money] = field(default_factory=list)
     plan: str | None = None
     error: str | None = None
 

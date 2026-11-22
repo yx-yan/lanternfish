@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from .providers.base import Usage, Window
+from .providers.base import Money, Usage, Window
 
 MISSING = "—"
 
@@ -34,6 +34,8 @@ def title(usages: list[Usage]) -> str:
     """Menu bar title, e.g. 'C 13% · X 58%' (the shortest window of each provider)."""
     parts = []
     for usage in usages:
+        if usage.short is None:
+            continue
         window = usage.primary
         parts.append(f"{usage.short} {percent(window.used_percent) if window else MISSING}")
     return " · ".join(parts)
@@ -41,6 +43,19 @@ def title(usages: list[Usage]) -> str:
 
 def window_line(window: Window, now: datetime | None = None) -> str:
     return f"{window.label}  {percent(window.used_percent)}  ·  resets in {until(window.resets_at, now)}"
+
+
+SYMBOLS = {"USD": "$", "CNY": "¥", "SGD": "S$", "EUR": "€"}
+
+
+def money(value: Money) -> str:
+    symbol = SYMBOLS.get(value.currency.upper())
+    amount = f"{value.amount:,.2f}"
+    return f"{symbol}{amount}" if symbol else f"{amount} {value.currency}"
+
+
+def money_line(value: Money) -> str:
+    return f"{value.label}  {money(value)}"
 
 
 def header_line(usage: Usage) -> str:
@@ -56,4 +71,6 @@ def report(usages: list[Usage], now: datetime | None = None) -> str:
             lines.append(f"  {MISSING} {usage.error}")
         for window in usage.windows:
             lines.append(f"  {window_line(window, now)}")
+        for value in usage.money:
+            lines.append(f"  {money_line(value)}")
     return "\n".join(lines)
