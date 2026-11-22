@@ -1,8 +1,18 @@
+<p align="center">
+  <img src="assets/logo.svg" width="128" alt="Lanternfish logo: a white fish whose glowing lure is ringed by an amber usage gauge">
+</p>
+
 <h1 align="center">Lanternfish</h1>
 
 <p align="center">
   <strong>Your AI usage limits, always lit.</strong><br>
   Claude and Codex subscription usage in the macOS menu bar, plus API spend, so you stop opening settings pages to check.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-menu%20bar-14213D" alt="macOS menu bar">
+  <img src="https://img.shields.io/badge/Python-3.12-14213D" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/project-007-FFB020" alt="Project 007">
 </p>
 
 ```
@@ -25,6 +35,7 @@ DeepSeek API
 Updated 14:12
 Refresh now
 API Keys              ▸
+Start at Login
 Quit Lanternfish
 ```
 
@@ -32,6 +43,7 @@ Quit Lanternfish
 - **Nothing leaves your Mac** except the usage request itself, sent straight to Anthropic and OpenAI.
 - **One source failing never hides the other.** A broken source shows `—` and the reason.
 - **API spend is opt-in.** Add a key under *API Keys* and that row appears; the menu bar title stays subscriptions only.
+- **A heads-up at 80%.** One notification per usage window when it crosses 80%; it re-arms after the window resets.
 - Refreshes every 5 minutes, or press ⌘R in the menu.
 
 ## Quick start
@@ -42,8 +54,13 @@ You need macOS, Python 3.12, and at least one of [Claude Code](https://claude.co
 python3.12 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 .venv/bin/lanternfish          # print usage once in the terminal
-.venv/bin/python -m lanternfish  # start the menu bar app
+.venv/bin/python -m lanternfish  # start the menu bar app from the terminal
+./macos/build.sh                 # install /Applications/Lanternfish.app
 ```
+
+The app runs the code in this checkout, so pulling changes only needs a restart, not a rebuild.
+Turn on *Start at Login* from the menu (it adds `~/Library/LaunchAgents/com.yuxuanyan.lanternfish.plist`).
+Logs go to `~/Library/Logs/Lanternfish.log`.
 
 ## How it works
 
@@ -65,8 +82,8 @@ If a token has expired, Lanternfish tells you to run `claude` or `codex login` a
 
 - [x] M1: Claude and Codex subscription limits
 - [x] M2: API spend (Anthropic, OpenAI, DeepSeek)
-- [ ] M3: `.app` bundle, start at login, alert above 80%
-- [ ] M4: logo
+- [x] M3: `.app` bundle, start at login, alert above 80%
+- [x] M4: logo
 
 ## License
 
