@@ -15,6 +15,7 @@ Lanternfish (project 007): macOS menu bar app showing Claude and Codex subscript
 - `providers/__init__.py` `fetch_all()` isolates failures: one broken provider becomes a `Usage` with `.error`, never an exception.
 - `keychain.py` — API keys in the login Keychain, service `lanternfish`, one account per provider (`Provider.key_account`).
 - `alerts.py` — one notification per window at 80% (keyed by reset time); `login.py` — Start at Login via a LaunchAgent that runs `open -a`.
+- `assets/logo.svg` is the source of the app icon: `swift macos/make_icon.swift assets/logo.svg macos/AppIcon.icns`, then `./macos/build.sh`.
 - `macos/` — C launcher that embeds the venv's Python (same approach as Archerfish), Info.plist, build.sh.
 - `format.py` — all user-visible text; `app.py` — rumps UI only (fetches on a worker thread, applies results on the main thread).
 

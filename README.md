@@ -1,8 +1,18 @@
+<p align="center">
+  <img src="assets/logo.svg" width="128" alt="Lanternfish logo: a white fish whose glowing lure is ringed by an amber usage gauge">
+</p>
+
 <h1 align="center">Lanternfish</h1>
 
 <p align="center">
   <strong>Your AI usage limits, always lit.</strong><br>
   Claude and Codex subscription usage in the macOS menu bar, plus API spend, so you stop opening settings pages to check.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-menu%20bar-14213D" alt="macOS menu bar">
+  <img src="https://img.shields.io/badge/Python-3.12-14213D" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/project-007-FFB020" alt="Project 007">
 </p>
 
 ```
@@ -73,7 +83,7 @@ If a token has expired, Lanternfish tells you to run `claude` or `codex login` a
 - [x] M1: Claude and Codex subscription limits
 - [x] M2: API spend (Anthropic, OpenAI, DeepSeek)
 - [x] M3: `.app` bundle, start at login, alert above 80%
-- [ ] M4: logo
+- [x] M4: logo
 
 ## License
 
