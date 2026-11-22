@@ -25,6 +25,7 @@ DeepSeek API
 Updated 14:12
 Refresh now
 API Keys              ▸
+Start at Login
 Quit Lanternfish
 ```
 
@@ -32,6 +33,7 @@ Quit Lanternfish
 - **Nothing leaves your Mac** except the usage request itself, sent straight to Anthropic and OpenAI.
 - **One source failing never hides the other.** A broken source shows `—` and the reason.
 - **API spend is opt-in.** Add a key under *API Keys* and that row appears; the menu bar title stays subscriptions only.
+- **A heads-up at 80%.** One notification per usage window when it crosses 80%; it re-arms after the window resets.
 - Refreshes every 5 minutes, or press ⌘R in the menu.
 
 ## Quick start
@@ -42,8 +44,13 @@ You need macOS, Python 3.12, and at least one of [Claude Code](https://claude.co
 python3.12 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 .venv/bin/lanternfish          # print usage once in the terminal
-.venv/bin/python -m lanternfish  # start the menu bar app
+.venv/bin/python -m lanternfish  # start the menu bar app from the terminal
+./macos/build.sh                 # install /Applications/Lanternfish.app
 ```
+
+The app runs the code in this checkout, so pulling changes only needs a restart, not a rebuild.
+Turn on *Start at Login* from the menu (it adds `~/Library/LaunchAgents/com.yuxuanyan.lanternfish.plist`).
+Logs go to `~/Library/Logs/Lanternfish.log`.
 
 ## How it works
 
@@ -65,7 +72,7 @@ If a token has expired, Lanternfish tells you to run `claude` or `codex login` a
 
 - [x] M1: Claude and Codex subscription limits
 - [x] M2: API spend (Anthropic, OpenAI, DeepSeek)
-- [ ] M3: `.app` bundle, start at login, alert above 80%
+- [x] M3: `.app` bundle, start at login, alert above 80%
 - [ ] M4: logo
 
 ## License

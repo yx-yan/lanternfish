@@ -7,7 +7,8 @@ from datetime import datetime
 
 import rumps
 
-from . import keychain
+from . import keychain, login
+from .alerts import AlertTracker
 from .format import MISSING, header_line, money_line, title, window_line
 from .providers import PROVIDERS, fetch_all
 from .providers.base import Usage
@@ -26,6 +27,7 @@ class LanternfishApp(rumps.App):
         self._usages: list[Usage] = [Usage(name=p.name, short=p.short) for p in PROVIDERS if p.short]
         self._updated: datetime | None = None
         self._rendered_minute: datetime | None = None
+        self._alerts = AlertTracker()
         self._render()
         # Main-thread timers: one kicks off fetches, one applies finished results to the UI.
         self._refresh_timer = rumps.Timer(lambda _: self.refresh(), REFRESH_SECONDS)
@@ -53,6 +55,8 @@ class LanternfishApp(rumps.App):
         if usages is not None:
             self._usages = usages
             self._updated = datetime.now()
+            for alert_title, message in self._alerts.check(usages):
+                notify(alert_title, message)
         # Redraw when new data arrives, and once a minute so the countdowns stay current.
         minute = datetime.now().replace(second=0, microsecond=0)
         if usages is not None or minute != self._rendered_minute:
@@ -83,6 +87,10 @@ class LanternfishApp(rumps.App):
                 keys[provider.key_account] = rumps.MenuItem(
                     f"{mark}{provider.name}…", callback=self._key_prompt(provider.name, provider.key_account))
         self.menu["keys"] = keys
+        if login.app_installed():
+            start = rumps.MenuItem("Start at Login", callback=self._toggle_login)
+            start.state = login.enabled()
+            self.menu["login"] = start
         self.menu["quit"] = rumps.MenuItem("Quit Lanternfish", callback=rumps.quit_application, key="q")
 
     def _key_prompt(self, name: str, account: str):
@@ -102,6 +110,21 @@ class LanternfishApp(rumps.App):
             self._render()
             self.refresh()
         return prompt
+
+    def _toggle_login(self, item) -> None:
+        if login.enabled():
+            login.disable()
+        else:
+            login.enable()
+        item.state = login.enabled()
+
+
+def notify(title: str, message: str) -> None:
+    # Notifications need a bundle identifier, which only the installed .app has.
+    try:
+        rumps.notification("Lanternfish", title, message)
+    except Exception as exc:
+        print(f"notification failed: {exc}")
 
 
 KEY_HINTS = {
