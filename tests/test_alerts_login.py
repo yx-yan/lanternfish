@@ -16,7 +16,7 @@ def test_alert_fires_once_per_window():
     tracker = AlertTracker()
     assert tracker.check(usage(79)) == []
     first = tracker.check(usage(81))
-    assert len(first) == 1 and first[0][0] == "Claude 5-hour at 81%"
+    assert len(first) == 1 and first[0][0] == "Claude 5-hour: 19% left"
     assert tracker.check(usage(95)) == []  # same window, already told
 
 

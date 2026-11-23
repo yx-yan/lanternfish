@@ -124,7 +124,7 @@ def test_one_failing_provider_does_not_hide_the_other(monkeypatch):
     assert usages[1].error is None
     assert usages[2].error == "unexpected error: KeyError"
     assert len(usages) == 3  # the unconfigured provider is left out
-    assert title(usages) == "C — · X 58% · O —"
+    assert title(usages) == "C — · X 42% · O —"
 
 
 def test_until():

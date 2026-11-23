@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .format import percent, until
+from .format import left, percent, until
 from .providers.base import Usage
 
 THRESHOLD = 80.0
@@ -26,7 +26,7 @@ class AlertTracker:
                     continue
                 self._sent.add(key)
                 alerts.append((
-                    f"{usage.name} {window.label} at {percent(window.used_percent)}",
+                    f"{usage.name} {window.label}: {percent(left(window))} left",
                     f"Resets in {until(window.resets_at)}.",
                 ))
         return alerts
