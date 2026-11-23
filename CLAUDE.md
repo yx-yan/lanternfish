@@ -17,7 +17,7 @@ Lanternfish (project 007): macOS menu bar app showing Claude and Codex subscript
 - `alerts.py` — one notification per window at 80% (keyed by reset time); `login.py` — Start at Login via a LaunchAgent that runs `open -a`.
 - `assets/logo.svg` is the source of the app icon: `swift macos/make_icon.swift assets/logo.svg macos/AppIcon.icns`, then `./macos/build.sh`.
 - `macos/` — C launcher that embeds the venv's Python (same approach as Archerfish), Info.plist, build.sh.
-- `format.py` — all user-visible text; `app.py` — rumps UI only (fetches on a worker thread, applies results on the main thread).
+- `format.py` — all user-visible text (percentages are shown as what is left); `views.py` — custom NSView menu rows (header, usage bar, money, note) drawn with system colors; `app.py` — rumps UI only (fetches on a worker thread, applies results on the main thread).
 
 ## Rules
 - Subscription endpoints are unofficial; verify the response shape with curl before changing a parser, and refresh the fixture.

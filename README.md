@@ -16,34 +16,27 @@
 </p>
 
 ```
-C 16% · X 58%
+C 84% · X 42%
 ```
 
-Click it for the details:
+The numbers are what is **left**, the way the official usage pages show it.
+
+Click it for the details: each usage window gets a bar that drains from green to orange to red, with its reset countdown underneath, and API spend appears as plain rows.
 
 ```
-Claude (pro)
-    5-hour  16%  ·  resets in 4h 29m
-    Weekly  20%  ·  resets in 19h 49m
-Codex (plus)
-    5-hour  58%  ·  resets in 3h 32m
-    Weekly  13%  ·  resets in 3d 22h
-Anthropic API
-    This month  $12.40
-DeepSeek API
-    Balance  ¥110.00
-Updated 14:12
-Refresh now
-API Keys              ▸
-Start at Login
-Quit Lanternfish
+Claude                                  Pro
+5-hour                             84% left
+████████████████████████████████░░░░░░░░░
+Resets in 4h 29m
+Weekly                             80% left
+...
 ```
 
 - **No extra login.** It reuses the sign-ins you already have: Claude Code's token in the macOS Keychain and Codex CLI's `~/.codex/auth.json`.
 - **Nothing leaves your Mac** except the usage request itself, sent straight to Anthropic and OpenAI.
 - **One source failing never hides the other.** A broken source shows `—` and the reason.
 - **API spend is opt-in.** Add a key under *API Keys* and that row appears; the menu bar title stays subscriptions only.
-- **A heads-up at 80%.** One notification per usage window when it crosses 80%; it re-arms after the window resets.
+- **A heads-up at 20% left.** One notification per usage window when it drops to 20% left; it re-arms after the window resets.
 - Refreshes every 5 minutes, or press ⌘R in the menu.
 
 ## Quick start

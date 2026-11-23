@@ -13,6 +13,11 @@ def percent(value: float) -> str:
     return f"{round(value)}%"
 
 
+def left(window: Window) -> float:
+    """Remaining share of a window, as the official usage pages show it."""
+    return min(100.0, max(0.0, 100.0 - window.used_percent))
+
+
 def until(when: datetime | None, now: datetime | None = None) -> str:
     """Compact countdown: '4h 32m', '2d 5h', '12m', 'now'."""
     if when is None:
@@ -31,18 +36,26 @@ def until(when: datetime | None, now: datetime | None = None) -> str:
 
 
 def title(usages: list[Usage]) -> str:
-    """Menu bar title, e.g. 'C 13% · X 58%' (the shortest window of each provider)."""
+    """Menu bar title, e.g. 'C 87% · X 42%': what is left in the shortest window of each provider."""
     parts = []
     for usage in usages:
         if usage.short is None:
             continue
         window = usage.primary
-        parts.append(f"{usage.short} {percent(window.used_percent) if window else MISSING}")
+        parts.append(f"{usage.short} {percent(left(window)) if window else MISSING}")
     return " · ".join(parts)
 
 
+def left_text(window: Window) -> str:
+    return f"{percent(left(window))} left"
+
+
+def resets_text(window: Window, now: datetime | None = None) -> str:
+    return f"Resets in {until(window.resets_at, now)}"
+
+
 def window_line(window: Window, now: datetime | None = None) -> str:
-    return f"{window.label}  {percent(window.used_percent)}  ·  resets in {until(window.resets_at, now)}"
+    return f"{window.label}  {left_text(window)}  ·  resets in {until(window.resets_at, now)}"
 
 
 SYMBOLS = {"USD": "$", "CNY": "¥", "SGD": "S$", "EUR": "€"}
@@ -56,6 +69,10 @@ def money(value: Money) -> str:
 
 def money_line(value: Money) -> str:
     return f"{value.label}  {money(value)}"
+
+
+def plan_text(usage: Usage) -> str | None:
+    return usage.plan.capitalize() if usage.plan else None
 
 
 def header_line(usage: Usage) -> str:

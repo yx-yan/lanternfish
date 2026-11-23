@@ -10,6 +10,7 @@ import rumps
 from . import keychain, login, single
 from .alerts import AlertTracker
 from .format import MISSING, header_line, money_line, title, window_line
+from .views import header_view, money_view, note_view, window_view
 from .providers import PROVIDERS, fetch_all
 from .providers.base import Usage
 
@@ -69,14 +70,15 @@ class LanternfishApp(rumps.App):
         # rumps keys menu items by title; use explicit keys so identical lines
         # (e.g. "— network error" for both providers) do not overwrite each other.
         for usage in self._usages:
-            self.menu[f"{usage.name}:header"] = rumps.MenuItem(header_line(usage))
+            self._row(f"{usage.name}:header", header_line(usage), header_view(usage))
             if usage.error:
-                self.menu[f"{usage.name}:error"] = rumps.MenuItem(f"    {MISSING} {usage.error}")
+                message = f"{MISSING} {usage.error}"
+                self._row(f"{usage.name}:error", message, note_view(message))
             for i, window in enumerate(usage.windows):
-                self.menu[f"{usage.name}:{i}"] = rumps.MenuItem(f"    {window_line(window)}")
+                self._row(f"{usage.name}:{i}", window_line(window), window_view(window))
             for i, value in enumerate(usage.money):
-                self.menu[f"{usage.name}:money{i}"] = rumps.MenuItem(f"    {money_line(value)}")
-            self.menu.add(rumps.separator)
+                self._row(f"{usage.name}:money{i}", money_line(value), money_view(value))
+        self.menu.add(rumps.separator)
         updated = self._updated.strftime("%H:%M") if self._updated else "never"
         self.menu["updated"] = rumps.MenuItem(f"Updated {updated}")
         self.menu["refresh"] = rumps.MenuItem("Refresh now", callback=lambda _: self.refresh(), key="r")
@@ -92,6 +94,12 @@ class LanternfishApp(rumps.App):
             start.state = login.enabled()
             self.menu["login"] = start
         self.menu["quit"] = rumps.MenuItem("Quit Lanternfish", callback=rumps.quit_application, key="q")
+
+    def _row(self, key: str, text: str, view) -> None:
+        """An info row drawn by a custom view; the plain text stays as the item's title."""
+        item = rumps.MenuItem(text)
+        item._menuitem.setView_(view)
+        self.menu[key] = item
 
     def _key_prompt(self, name: str, account: str):
         def prompt(_item) -> None:
