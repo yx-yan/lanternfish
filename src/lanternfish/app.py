@@ -7,14 +7,16 @@ from datetime import datetime
 
 import rumps
 
-from . import keychain, login, single
+from . import hotkey, keychain, login, single
 from .alerts import AlertTracker
-from .format import MISSING, header_line, money_line, title, window_line
-from .views import header_view, money_view, note_view, window_view
+from .format import HOTKEY, title, updated_line
+from .panel import UsagePanel
+from .views import usage_rows
 from .providers import PROVIDERS, fetch_all
 from .providers.base import Usage
 
 REFRESH_SECONDS = 5 * 60
+CONTROL_OPTION_MASK = (1 << 18) | (1 << 19)   # NSEventModifierFlagControl | Option
 
 
 class LanternfishApp(rumps.App):
@@ -29,6 +31,8 @@ class LanternfishApp(rumps.App):
         self._updated: datetime | None = None
         self._rendered_minute: datetime | None = None
         self._alerts = AlertTracker()
+        self._panel = UsagePanel()
+        self._hotkey = hotkey.register(hotkey.KEY_L, hotkey.CONTROL | hotkey.OPTION, self._toggle_panel)
         self._render()
         # Main-thread timers: one kicks off fetches, one applies finished results to the UI.
         self._refresh_timer = rumps.Timer(lambda _: self.refresh(), REFRESH_SECONDS)
@@ -69,18 +73,16 @@ class LanternfishApp(rumps.App):
         self.menu.clear()
         # rumps keys menu items by title; use explicit keys so identical lines
         # (e.g. "— network error" for both providers) do not overwrite each other.
-        for usage in self._usages:
-            self._row(f"{usage.name}:header", header_line(usage), header_view(usage))
-            if usage.error:
-                message = f"{MISSING} {usage.error}"
-                self._row(f"{usage.name}:error", message, note_view(message))
-            for i, window in enumerate(usage.windows):
-                self._row(f"{usage.name}:{i}", window_line(window), window_view(window))
-            for i, value in enumerate(usage.money):
-                self._row(f"{usage.name}:money{i}", money_line(value), money_view(value))
+        for key, text, view in usage_rows(self._usages):
+            self._row(key, text, view)
         self.menu.add(rumps.separator)
-        updated = self._updated.strftime("%H:%M") if self._updated else "never"
-        self.menu["updated"] = rumps.MenuItem(f"Updated {updated}")
+        self.menu["updated"] = rumps.MenuItem(updated_line(self._updated))
+        if self._hotkey:
+            show = rumps.MenuItem("Show Panel", callback=lambda _: self._toggle_panel())
+            # Display-only shortcut hint; the real hotkey is registered system-wide.
+            show._menuitem.setKeyEquivalent_("l")
+            show._menuitem.setKeyEquivalentModifierMask_(CONTROL_OPTION_MASK)
+            self.menu["panel"] = show
         self.menu["refresh"] = rumps.MenuItem("Refresh now", callback=lambda _: self.refresh(), key="r")
         keys = rumps.MenuItem("API Keys")
         for provider in PROVIDERS:
@@ -94,6 +96,14 @@ class LanternfishApp(rumps.App):
             start.state = login.enabled()
             self.menu["login"] = start
         self.menu["quit"] = rumps.MenuItem("Quit Lanternfish", callback=rumps.quit_application, key="q")
+        if self._panel.visible:
+            self._panel.update(self._usages, self._panel_footer())
+
+    def _toggle_panel(self) -> None:
+        self._panel.toggle(self._usages, self._panel_footer())
+
+    def _panel_footer(self) -> str:
+        return f"{updated_line(self._updated)}  ·  {HOTKEY} to close"
 
     def _row(self, key: str, text: str, view) -> None:
         """An info row drawn by a custom view; the plain text stays as the item's title."""
