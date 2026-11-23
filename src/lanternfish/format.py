@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from .providers.base import Money, Usage, Window
 
 MISSING = "—"
+HOTKEY = "⌃⌥L"
 
 
 def percent(value: float) -> str:
@@ -73,6 +74,10 @@ def money_line(value: Money) -> str:
 
 def plan_text(usage: Usage) -> str | None:
     return usage.plan.capitalize() if usage.plan else None
+
+
+def updated_line(updated: datetime | None) -> str:
+    return f"Updated {updated.strftime('%H:%M') if updated else 'never'}"
 
 
 def header_line(usage: Usage) -> str:

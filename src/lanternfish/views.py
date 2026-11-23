@@ -20,7 +20,9 @@ from AppKit import (
 )
 from Foundation import NSAttributedString
 
-from .format import left, left_text, money, plan_text, resets_text
+from .format import (
+    MISSING, header_line, left, left_text, money, money_line, plan_text, resets_text, window_line,
+)
 from .providers.base import Money, Usage, Window
 
 WIDTH = 260
@@ -100,3 +102,16 @@ def money_view(value: Money) -> NSView:
 
 def note_view(message: str) -> NSView:
     return _row(22, [(_text(message, 11, NSColor.secondaryLabelColor()), 2, "left")])
+
+
+def usage_rows(usages: list[Usage]):
+    """(key, plain text, view) for every info row, shared by the menu and the panel."""
+    for usage in usages:
+        yield f"{usage.name}:header", header_line(usage), header_view(usage)
+        if usage.error:
+            message = f"{MISSING} {usage.error}"
+            yield f"{usage.name}:error", message, note_view(message)
+        for i, window in enumerate(usage.windows):
+            yield f"{usage.name}:{i}", window_line(window), window_view(window)
+        for i, value in enumerate(usage.money):
+            yield f"{usage.name}:money{i}", money_line(value), money_view(value)
