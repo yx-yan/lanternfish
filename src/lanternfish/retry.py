@@ -18,10 +18,11 @@ class RetrySchedule:
 
     def update(self, usages: list[Usage], now: float) -> None:
         """Plan the next retry from the results of a fetch."""
-        self._network_at = None
         if not any(u.network_error for u in usages):
+            self._network_at = None
             self._attempts = 0   # the next outage gets the full series again
-        elif self._attempts < len(NETWORK_DELAYS):
+        elif self._network_at is None and self._attempts < len(NETWORK_DELAYS):
+            # A retry already planned stays put, so an extra fetch does not push it back.
             self._network_at = now + NETWORK_DELAYS[self._attempts]
             self._attempts += 1
         expired = any(u.token_expired for u in usages)

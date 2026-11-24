@@ -24,6 +24,13 @@ def test_network_retries_back_off_then_stop():
     assert not retry.network_due(now + 10_000)
 
 
+def test_extra_failed_fetch_does_not_delay_a_planned_retry():
+    retry = RetrySchedule()
+    retry.update(OFFLINE, 0)
+    retry.update(OFFLINE, 1)  # startup fetches twice; so can a manual refresh
+    assert retry.network_due(5)
+
+
 def test_success_cancels_and_resets_the_backoff():
     retry = RetrySchedule()
     retry.update(OFFLINE, 0)
