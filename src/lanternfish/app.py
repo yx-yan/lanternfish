@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from datetime import datetime
 
 import rumps
@@ -12,8 +13,9 @@ from .alerts import AlertTracker
 from .format import HOTKEY, title, updated_line
 from .panel import UsagePanel
 from .views import usage_rows
-from .providers import PROVIDERS, fetch_all
+from .providers import PROVIDERS, fetch_all, token_renewed
 from .providers.base import Usage
+from .retry import RetrySchedule
 
 REFRESH_SECONDS = 5 * 60
 CONTROL_OPTION_MASK = (1 << 18) | (1 << 19)   # NSEventModifierFlagControl | Option
@@ -31,6 +33,7 @@ class LanternfishApp(rumps.App):
         self._updated: datetime | None = None
         self._rendered_minute: datetime | None = None
         self._alerts = AlertTracker()
+        self._retry = RetrySchedule()
         self._panel = UsagePanel()
         self._hotkey = hotkey.register(hotkey.KEY_L, hotkey.CONTROL | hotkey.OPTION, self._toggle_panel)
         self._render()
@@ -42,11 +45,15 @@ class LanternfishApp(rumps.App):
         self.refresh()
 
     def refresh(self) -> None:
+        self._start(self._fetch)
+
+    def _start(self, work) -> None:
+        """Run work on a background thread unless a fetch or token check is already running."""
         with self._lock:
             if self._fetching:
                 return
             self._fetching = True
-        threading.Thread(target=self._fetch, daemon=True).start()
+        threading.Thread(target=work, daemon=True).start()
 
     def _fetch(self) -> None:
         usages = fetch_all()
@@ -54,18 +61,38 @@ class LanternfishApp(rumps.App):
             self._pending = usages
             self._fetching = False
 
+    def _check_token(self) -> None:
+        try:
+            renewed = token_renewed(self._usages)
+        except Exception as exc:
+            print(f"token check failed: {exc.__class__.__name__}")
+            renewed = False
+        if renewed:
+            self._fetch()
+        else:
+            with self._lock:
+                self._fetching = False
+
     def _apply_pending(self, _timer) -> None:
         with self._lock:
             usages, self._pending = self._pending, None
         if usages is not None:
             self._usages = usages
             self._updated = datetime.now()
+            self._retry.update(usages, time.monotonic())
             for alert_title, message in self._alerts.check(usages):
                 notify(alert_title, message)
         # Redraw when new data arrives, and once a minute so the countdowns stay current.
         minute = datetime.now().replace(second=0, microsecond=0)
         if usages is not None or minute != self._rendered_minute:
             self._render()
+        if self._fetching:
+            return  # keep a due retry for the next tick instead of dropping it
+        now = time.monotonic()
+        if self._retry.network_due(now):
+            self.refresh()
+        elif self._retry.token_due(now):
+            self._start(self._check_token)
 
     def _render(self) -> None:
         self._rendered_minute = datetime.now().replace(second=0, microsecond=0)

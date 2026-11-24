@@ -10,7 +10,7 @@ import subprocess
 import time
 from datetime import datetime
 
-from .base import ProviderError, Usage, Window, get_json
+from .base import ProviderError, TokenExpired, Usage, Window, get_json
 
 URL = "https://api.anthropic.com/api/oauth/usage"
 KEYCHAIN_SERVICE = "Claude Code-credentials"
@@ -33,8 +33,17 @@ def read_token() -> tuple[str, str | None]:
         raise ProviderError("unreadable Claude Code credentials") from exc
     expires_ms = oauth.get("expiresAt")
     if isinstance(expires_ms, (int, float)) and expires_ms / 1000 < time.time():
-        raise ProviderError(f"token expired; {RELOGIN}")
+        raise TokenExpired(f"token expired; {RELOGIN}")
     return token, oauth.get("subscriptionType")
+
+
+def token_ready() -> bool:
+    """Whether the Keychain now holds an unexpired token; no network request."""
+    try:
+        read_token()
+    except ProviderError:
+        return False
+    return True
 
 
 def parse(data: dict, plan: str | None = None) -> Usage:
