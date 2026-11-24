@@ -14,6 +14,7 @@ Lanternfish (project 007): macOS menu bar app showing Claude and Codex subscript
 - `src/lanternfish/providers/` — one module per source, each with `parse(data) -> Usage` (pure, tested on fixtures) and `fetch()`; failures raise `ProviderError`, a missing credential raises `NotConfigured` (provider hidden). Register new ones in `providers/__init__.py` `PROVIDERS`; `short=None` keeps a provider out of the menu bar title.
 - `providers/__init__.py` `fetch_all()` isolates failures: one broken provider becomes a `Usage` with `.error`, never an exception.
 - `keychain.py` — API keys in the login Keychain, service `lanternfish`, one account per provider (`Provider.key_account`).
+- `retry.py` — when to fetch before the regular refresh: network errors back off 5/10/20/40 s, an expired Claude token is re-read locally every 15 s (no request until it is renewed).
 - `alerts.py` — one notification per window at 80% (keyed by reset time); `login.py` — Start at Login via a LaunchAgent that runs `open -a`.
 - `assets/logo.svg` is the source of the app icon: `swift macos/make_icon.swift assets/logo.svg macos/AppIcon.icns`, then `./macos/build.sh`.
 - `macos/` — C launcher that embeds the venv's Python (same approach as Archerfish), Info.plist, build.sh.

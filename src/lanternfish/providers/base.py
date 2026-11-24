@@ -16,6 +16,14 @@ class ProviderError(Exception):
     """A provider could not produce usage; the message is shown in the menu."""
 
 
+class NetworkError(ProviderError):
+    """The endpoint could not be reached; worth retrying soon."""
+
+
+class TokenExpired(ProviderError):
+    """The stored token has expired; worth retrying once its owner renews it."""
+
+
 class NotConfigured(Exception):
     """The provider has no credential set up; it is left out of the menu entirely."""
 
@@ -42,6 +50,8 @@ class Usage:
     money: list[Money] = field(default_factory=list)
     plan: str | None = None
     error: str | None = None
+    network_error: bool = False
+    token_expired: bool = False
 
     @property
     def primary(self) -> Window | None:
@@ -59,6 +69,6 @@ def get_json(url: str, headers: dict[str, str]) -> dict:
             raise ProviderError(f"auth rejected (HTTP {exc.code})") from exc
         raise ProviderError(f"HTTP {exc.code}") from exc
     except (urllib.error.URLError, TimeoutError) as exc:
-        raise ProviderError("network error") from exc
+        raise NetworkError("network error") from exc
     except json.JSONDecodeError as exc:
         raise ProviderError("bad response") from exc
