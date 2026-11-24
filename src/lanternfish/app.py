@@ -9,7 +9,7 @@ from datetime import datetime
 import rumps
 
 from . import hotkey, keychain, login, single
-from .alerts import AlertTracker
+from .alerts import STATE_FILE, AlertTracker
 from .format import HOTKEY, title, updated_line
 from .panel import UsagePanel
 from .views import usage_rows
@@ -32,7 +32,7 @@ class LanternfishApp(rumps.App):
         self._usages: list[Usage] = [Usage(name=p.name, short=p.short) for p in PROVIDERS if p.short]
         self._updated: datetime | None = None
         self._rendered_minute: datetime | None = None
-        self._alerts = AlertTracker()
+        self._alerts = AlertTracker(path=STATE_FILE)
         self._retry = RetrySchedule()
         self._panel = UsagePanel()
         self._hotkey = hotkey.register(hotkey.KEY_L, hotkey.CONTROL | hotkey.OPTION, self._toggle_panel)
