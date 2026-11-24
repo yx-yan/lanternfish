@@ -37,7 +37,7 @@ Weekly                             80% left
 - **Nothing leaves your Mac** except the usage request itself, sent straight to Anthropic and OpenAI.
 - **One source failing never hides the other.** A broken source shows `—` and the reason.
 - **API spend is opt-in.** Add a key under *API Keys* and that row appears; the menu bar title stays subscriptions only.
-- **A heads-up at 20% left.** One notification per usage window when it drops to 20% left; it re-arms after the window resets.
+- **A heads-up when you run low.** One notification each at 20%, 10%, 5% and 0% left, and one when that window resets.
 - Refreshes every 5 minutes, or press ⌘R in the menu. Retries within seconds after a network error, and picks up a renewed Claude token within about 15 seconds.
 
 ## Quick start
