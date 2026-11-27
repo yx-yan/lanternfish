@@ -91,7 +91,8 @@ def error_line(usage: Usage, now: datetime | None = None) -> str:
     if not usage.rate_limited:
         return f"{MISSING} {usage.error}"
     wait = rate_wait(usage, now)
-    text = f"rate limited; retrying {'in ' + until(usage.retry_at, now) if wait is not None else 'at next refresh'}"
+    when = until(usage.retry_at, now) if wait is not None else None
+    text = f"rate limited; retrying {'at next refresh' if when is None else 'now' if when == 'now' else 'in ' + when}"
     if usage.stale_at:
         text += f"  ·  data from {usage.stale_at.astimezone().strftime('%H:%M')}"
     return text if usage.windows or usage.money else f"{MISSING} {text}"

@@ -125,6 +125,7 @@ def test_retry_after_parsing():
     assert base.retry_after(None) is None
     assert base.retry_after("Wed, 21 Oct 2026 07:28:00 GMT") is None
     assert base.retry_after("-5") is None
+    assert base.retry_after("0") is None   # sent while still limited: no immediate retry
 
 
 def test_fetch_all_marks_rate_limited(monkeypatch):
@@ -158,6 +159,8 @@ def test_rate_limited_note():
         f"rate limited; retrying at next refresh  ·  data from {stale.astimezone().strftime('%H:%M')}")
     soon = Usage("Claude", "C", error="rate limited", rate_limited=True, retry_at=now + timedelta(minutes=2))
     assert error_line(soon, now) == "— rate limited; retrying in 2m"
+    due = Usage("Claude", "C", error="rate limited", rate_limited=True, retry_at=now)
+    assert error_line(due, now) == "— rate limited; retrying now"
     assert error_line(Usage("Codex", "X", error="network error")) == "— network error"
 
 

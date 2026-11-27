@@ -154,7 +154,27 @@ def local_summary(daemon_dir: Path = DAEMON_DIR) -> dict | None:
     return None
 
 
+_last_plan: str | None = None   # plan from the last cloud answer, for local-only results
+
+
 def fetch() -> Usage:
+    """Cloud quota plus the local server's limits; when the cloud call cannot be made
+    (token expired while agy idles, no Keychain entry, network down) but agy's local
+    server answers with a Gemini group, its limits alone are shown."""
+    global _last_plan
+    summary = local_summary()
+    try:
+        data, plan = _fetch_cloud()
+    except (ProviderError, NotConfigured):
+        windows = limit_windows(summary) if summary else []
+        if windows and windows[0].label.startswith("Gemini"):
+            return Usage(name="Gemini", short="G", plan=_last_plan, windows=windows)
+        raise
+    _last_plan = plan
+    return parse(data, plan, summary)
+
+
+def _fetch_cloud() -> tuple[dict, str | None]:
     headers = {"Authorization": f"Bearer {read_token()}", "User-Agent": USER_AGENT}
     try:
         assist = post_json(BASE + "loadCodeAssist",
@@ -168,4 +188,4 @@ def fetch() -> Usage:
         if "auth rejected" in str(exc):
             raise ProviderError(f"token rejected; {RELOGIN}") from exc
         raise
-    return parse(data, plan_name(assist), local_summary())
+    return data, plan_name(assist)
