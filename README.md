@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Your AI usage limits, always lit.</strong><br>
-  Claude and Codex subscription usage in the macOS menu bar, plus API spend, so you stop opening settings pages to check.
+  Claude, Codex and Gemini subscription usage in the macOS menu bar, plus API spend, so you stop opening settings pages to check.
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
 </p>
 
 ```
-C 84% · X 42%
+C 84% · X 42% · G 100%
 ```
 
 The numbers are what is **left**, the way the official usage pages show it.
@@ -33,12 +33,12 @@ Weekly                             80% left
 ```
 
 - **Menu bar full? Press ⌃⌥L.** A floating panel with the same bars opens over whatever you are doing, no Accessibility permission needed; press it again, Esc, or click elsewhere to close it.
-- **No extra login.** It reuses the sign-ins you already have: Claude Code's token in the macOS Keychain and Codex CLI's `~/.codex/auth.json`.
-- **Nothing leaves your Mac** except the usage request itself, sent straight to Anthropic and OpenAI.
+- **No extra login.** It reuses the sign-ins you already have: Claude Code's token in the macOS Keychain, Codex CLI's `~/.codex/auth.json`, and Antigravity CLI's (`agy`) token in the Keychain for Gemini. Gemini shows the lowest model left in each Antigravity quota pool (Gemini, and Claude & GPT).
+- **Nothing leaves your Mac** except the usage request itself, sent straight to Anthropic, OpenAI and Google.
 - **One source failing never hides the other.** A broken source shows `—` and the reason.
 - **API spend is opt-in.** Add a key under *API Keys* and that row appears; the menu bar title stays subscriptions only.
 - **A heads-up when you run low.** One notification each at 20%, 10%, 5% and 0% left, and one when that window resets.
-- Refreshes every 5 minutes, or press ⌘R in the menu. Retries within seconds after a network error, and picks up a renewed Claude token within about 15 seconds.
+- Refreshes every 5 minutes, or press ⌘R in the menu. Retries within seconds after a network error, and picks up a renewed Claude or Antigravity token within about 15 seconds (the Antigravity token lasts an hour and only renews while `agy` runs).
 
 ## Quick start
 
