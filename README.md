@@ -33,7 +33,7 @@ Weekly                             80% left
 ```
 
 - **Menu bar full? Press ⌃⌥L.** A floating panel with the same bars opens over whatever you are doing, no Accessibility permission needed; press it again, Esc, or click elsewhere to close it.
-- **No extra login.** It reuses the sign-ins you already have: Claude Code's token in the macOS Keychain, Codex CLI's `~/.codex/auth.json`, and Antigravity CLI's (`agy`) token in the Keychain for Gemini. Gemini shows the Gemini models' quota in Antigravity (the lowest model left); Antigravity's Claude and GPT models use a separate pool that is not shown.
+- **No extra login.** It reuses the sign-ins you already have: Claude Code's token in the macOS Keychain, Codex CLI's `~/.codex/auth.json`, and Antigravity CLI's (`agy`) token in the Keychain for Gemini. Gemini shows the same Gemini 5-hour and weekly limits as Antigravity's model picker, read from `agy`'s local language server while it runs; otherwise it shows the Gemini models' quota (the lowest model left). Antigravity's own Claude and GPT models have separate 5-hour and weekly limits, shown as `Claude & GPT` under Gemini (part of the Google AI plan, not your Claude or Codex subscription; no reset times given).
 - **Nothing leaves your Mac** except the usage request itself, sent straight to Anthropic, OpenAI and Google.
 - **One source failing never hides the other.** A broken source shows `—` and the reason.
 - **API spend is opt-in.** Add a key under *API Keys* and that row appears; the menu bar title stays subscriptions only.
