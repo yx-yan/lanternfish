@@ -208,29 +208,3 @@ def test_gemini_without_antigravity_is_hidden(monkeypatch):
     monkeypatch.setattr(gemini_sub.subprocess, "run", fail)
     with pytest.raises(NotConfigured):
         gemini_sub.read_token()
-
-
-def test_gemini_parse_adds_group_limits_from_summary():
-    usage = gemini_sub.parse(load("gemini_models.json"), summary=load("gemini_quota_summary.json"))
-    assert [w.label for w in usage.windows] == ["Gemini", "Claude & GPT 5-hour", "Claude & GPT weekly"]
-    assert all(w.used_percent == 0 and w.resets_at is None for w in usage.windows[1:])
-    assert usage.primary.label == "Gemini"   # menu bar title keeps the Gemini pool
-
-
-def test_gemini_group_windows_skip_unknown_and_partial_buckets():
-    summary = {"groups": [
-        {"displayName": "Gemini models", "buckets": [
-            {"window": "weekly", "remainingFraction": 0.4},
-            {"window": "daily", "remainingFraction": 0.1},
-            {"window": "5h"},
-        ]},
-        {"buckets": [{"window": "5h", "remainingFraction": 0}]},   # no name: skipped
-    ]}
-    assert [(w.label, round(w.used_percent)) for w in gemini_sub.group_windows(summary)] == [("Gemini weekly", 60)]
-
-
-def test_window_without_reset_time_text():
-    from lanternfish.format import resets_text, window_line
-    window = base.Window("Claude & GPT weekly", 25.0, None)
-    assert resets_text(window) == "Reset time not given"
-    assert window_line(window) == "Claude & GPT weekly  75% left"

@@ -44,8 +44,7 @@ class AlertTracker:
                     sent_level = sent_reset = None
                 if level is not None and (sent_level is None or level < sent_level):
                     # One alert even if several levels, or a reset too, were passed since the last fetch.
-                    alerts.append((f"{name}: {percent(left(window))} left",
-                                   f"Resets in {until(window.resets_at)}." if window.resets_at else ""))
+                    alerts.append((f"{name}: {percent(left(window))} left", f"Resets in {until(window.resets_at)}."))
                     self._sent[key] = (level, window.resets_at or sent_reset)
                 elif was_reset:
                     alerts.append((f"{name}: reset, {percent(left(window))} left",

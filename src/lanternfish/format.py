@@ -51,16 +51,11 @@ def left_text(window: Window) -> str:
     return f"{percent(left(window))} left"
 
 
-NO_RESET = "Reset time not given"
-
-
 def resets_text(window: Window, now: datetime | None = None) -> str:
-    return f"Resets in {until(window.resets_at, now)}" if window.resets_at else NO_RESET
+    return f"Resets in {until(window.resets_at, now)}"
 
 
 def window_line(window: Window, now: datetime | None = None) -> str:
-    if window.resets_at is None:
-        return f"{window.label}  {left_text(window)}"
     return f"{window.label}  {left_text(window)}  ·  resets in {until(window.resets_at, now)}"
 
 
