@@ -7,8 +7,9 @@ POST v1internal:fetchAvailableModels (remainingFraction and resetTime per model)
 
 The 5-hour and weekly limits Antigravity's model picker shows come only from agy's local
 language server (RetrieveUserQuotaSummary, found through ~/.gemini/antigravity/daemon/hub_*.json);
-the cloud endpoint leaves the Gemini group out. Without agy running, the Gemini models'
-pool from fetchAvailableModels is shown instead.
+the cloud endpoint leaves the Gemini group out. Antigravity's Claude and GPT models are a
+separate group with their own limits (no reset times given). Without agy running, the
+Gemini models' pool from fetchAvailableModels is shown instead.
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ USER_AGENT = "antigravity"
 DAEMON_DIR = Path.home() / ".gemini" / "antigravity" / "daemon"
 LOCAL_RPC = "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary"
 LOCAL_TIMEOUT_SECONDS = 3
-WINDOWS = {"5h": "5-hour", "weekly": "Weekly"}
+WINDOWS = {"5h": "5-hour", "weekly": "weekly"}
 
 def read_token() -> str:
     """Return the access token from Antigravity's Keychain entry."""
@@ -95,29 +96,41 @@ def pool_window(data: dict) -> Window:
                   resets_at=_iso(lowest.get("resetTime")))
 
 
-def limit_windows(summary: dict) -> list[Window]:
-    """The Gemini group's 5-hour and weekly limits from the local quota summary.
+def group_name(display_name: str) -> str:
+    """'Gemini Models' -> 'Gemini', 'Claude and GPT models' -> 'Claude & GPT'."""
+    name = display_name.strip()
+    for suffix in (" Models", " models"):
+        name = name.removesuffix(suffix)
+    return name.replace(" and ", " & ")
 
-    Other groups (Antigravity's Claude and GPT models) are left out so they are not
-    mistaken for the Claude and Codex subscriptions.
+
+def limit_windows(summary: dict) -> list[Window]:
+    """Each model group's 5-hour and weekly limits from the local quota summary, labelled
+    with the group name ("Gemini 5-hour", "Claude & GPT weekly"); Gemini groups first.
+    The Claude & GPT group is Antigravity's own quota, not the Claude or Codex subscription.
     """
+    groups = [g for g in (summary.get("response") or summary).get("groups") or []
+              if isinstance(g, dict) and g.get("displayName")]
+    groups.sort(key=lambda g: not g["displayName"].startswith("Gemini"))
     windows = []
-    for group in (summary.get("response") or summary).get("groups") or []:
-        if not isinstance(group, dict) or not str(group.get("displayName", "")).startswith("Gemini"):
-            continue
+    for group in groups:
         buckets = {b.get("window"): b for b in group.get("buckets") or [] if isinstance(b, dict)}
         for key, label in WINDOWS.items():
             bucket = buckets.get(key)
             if bucket and bucket.get("remainingFraction") is not None:
-                windows.append(Window(label=label,
+                windows.append(Window(label=f"{group_name(group['displayName'])} {label}",
                                       used_percent=(1 - float(bucket["remainingFraction"])) * 100,
                                       resets_at=_iso(bucket.get("resetTime"))))
     return windows
 
 
 def parse(data: dict, plan: str | None = None, summary: dict | None = None) -> Usage:
+    """Group limits when agy's local server answered; without a Gemini group (agy not
+    running), the Gemini models' pool comes first so the menu bar title still shows Gemini."""
     windows = limit_windows(summary) if summary else []
-    return Usage(name="Gemini", short="G", plan=plan, windows=windows or [pool_window(data)])
+    if not windows or not windows[0].label.startswith("Gemini"):
+        windows.insert(0, pool_window(data))
+    return Usage(name="Gemini", short="G", plan=plan, windows=windows)
 
 
 def local_summary(daemon_dir: Path = DAEMON_DIR) -> dict | None:

@@ -213,17 +213,33 @@ def test_gemini_without_antigravity_is_hidden(monkeypatch):
 def test_gemini_limits_from_local_summary():
     usage = gemini_sub.parse(load("gemini_models.json"), plan="Pro",
                              summary=load("gemini_local_quota_summary.json"))
-    assert [w.label for w in usage.windows] == ["5-hour", "Weekly"]   # Claude & GPT group left out
-    assert all(w.used_percent == 0 and w.resets_at.tzinfo is not None for w in usage.windows)
+    assert [w.label for w in usage.windows] == [
+        "Gemini 5-hour", "Gemini weekly", "Claude & GPT 5-hour", "Claude & GPT weekly"]
+    assert all(w.used_percent == 0 for w in usage.windows)
     assert usage.windows[1].resets_at - usage.windows[0].resets_at > timedelta(days=6)
+    assert [w.resets_at for w in usage.windows[2:]] == [None, None]   # not given for this group
+    assert usage.primary.label == "Gemini 5-hour"   # menu bar title
 
 
 def test_gemini_falls_back_to_pool_without_gemini_group():
+    assert [w.label for w in gemini_sub.parse(load("gemini_models.json")).windows] == ["Gemini"]
     only_3p = {"response": {"groups": [{"displayName": "Claude and GPT models",
                                         "buckets": [{"window": "5h", "remainingFraction": 0.2}]}]}}
-    for summary in (None, only_3p):
-        usage = gemini_sub.parse(load("gemini_models.json"), summary=summary)
-        assert [w.label for w in usage.windows] == ["Gemini"]
+    usage = gemini_sub.parse(load("gemini_models.json"), summary=only_3p)
+    assert [(w.label, round(w.used_percent)) for w in usage.windows] == [
+        ("Gemini", 0), ("Claude & GPT 5-hour", 80)]
+
+
+def test_gemini_group_name():
+    assert gemini_sub.group_name("Gemini Models") == "Gemini"
+    assert gemini_sub.group_name("Claude and GPT models") == "Claude & GPT"
+
+
+def test_window_without_reset_time_text():
+    from lanternfish.format import resets_text, window_line
+    window = base.Window("Claude & GPT weekly", 25.0, None)
+    assert resets_text(window) == "Reset time not given"
+    assert window_line(window) == "Claude & GPT weekly  75% left"
 
 
 def test_gemini_local_summary_skips_stale_and_missing_daemons(tmp_path, monkeypatch):
