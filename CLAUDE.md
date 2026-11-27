@@ -23,6 +23,6 @@ Lanternfish (project 007): macOS menu bar app showing Claude, Codex and Gemini (
 ## Rules
 - Subscription endpoints are unofficial; verify the response shape with curl before changing a parser, and refresh the fixture.
 - Fixtures must not contain emails, user ids or account ids (the repo is public). Never commit tokens.
-- Gemini reads Antigravity CLI's token (Keychain service `gemini`, account `antigravity`, `go-keyring-base64:` JSON); requests must send `User-Agent: antigravity` or the server answers as if there were no plan. The token lasts an hour and only `agy` renews it.
+- Gemini reads Antigravity CLI's token (Keychain service `gemini`, account `antigravity`, `go-keyring-base64:` JSON); requests must send `User-Agent: antigravity` or the server answers as if there were no plan. The token lasts an hour and only `agy` renews it. The Gemini 5h/weekly limits come only from agy's local language server (`RetrieveUserQuotaSummary` on the port and CSRF token in `~/.gemini/antigravity/daemon/hub_*.json`); the cloud `retrieveUserQuotaSummary` omits the Gemini group. Fallback: the Gemini pool from `fetchAvailableModels`. Never show Antigravity's Claude/GPT group.
 - Keep the UI English and minimal; no unrequested features.
 - rumps keys menu items by title: always assign items with explicit keys (`self.menu[key] = ...`).
