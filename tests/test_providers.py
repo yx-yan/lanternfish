@@ -157,22 +157,22 @@ def _keychain(monkeypatch, token):
 
 def test_gemini_parse_real_response():
     usage = gemini_sub.parse(load("gemini_models.json"), plan="Pro")
-    assert [w.label for w in usage.windows] == ["Gemini", "Claude & GPT"]
+    assert [w.label for w in usage.windows] == ["Gemini"]
     assert all(w.used_percent == 0 for w in usage.windows)
     assert usage.windows[0].resets_at.tzinfo is not None
     assert (usage.name, usage.short, usage.plan) == ("Gemini", "G", "Pro")
 
 
-def test_gemini_parse_shows_lowest_model_per_group():
+def test_gemini_parse_shows_lowest_gemini_model():
     data = {"models": {
         "gemini-3-flash": {"displayName": "Flash", "quotaInfo": {"remainingFraction": 0.8}},
         "gemini-pro": {"displayName": "Pro", "quotaInfo": {"remainingFraction": 0.25,
                                                            "resetTime": "2026-11-27T09:22:05Z"}},
         "tab_flash": {"quotaInfo": {"remainingFraction": 0}},          # no displayName: internal
-        "claude-opus": {"displayName": "Opus", "quotaInfo": {"remainingFraction": 0.5}},
+        "claude-opus": {"displayName": "Opus", "quotaInfo": {"remainingFraction": 0.1}},  # other pool
     }}
     usage = gemini_sub.parse(data)
-    assert [(w.label, w.used_percent) for w in usage.windows] == [("Gemini", 75.0), ("Claude & GPT", 50.0)]
+    assert [(w.label, w.used_percent) for w in usage.windows] == [("Gemini", 75.0)]
     assert usage.windows[0].resets_at == datetime(2026, 11, 27, 9, 22, 5, tzinfo=timezone.utc)
 
 
