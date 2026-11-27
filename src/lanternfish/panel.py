@@ -30,9 +30,9 @@ from AppKit import (
 from objc import super  # PyObjC needs its own super() in Objective-C subclasses
 
 from .providers.base import Usage
-from .views import WIDTH, note_view, usage_rows
+from .views import WIDTH, footer_view, usage_rows
 
-PADDING = 10
+PADDING = 4   # cards bring their own spacing
 RADIUS = 12
 MATERIAL_MENU = 5
 STATE_ACTIVE = 1
@@ -99,7 +99,7 @@ class UsagePanel:
         self._watchers = []
 
     def update(self, usages: list[Usage], footer: str) -> None:
-        rows = [view for _key, _text, view in usage_rows(usages)] + [note_view(footer)]
+        rows = [view for _key, _text, view in usage_rows(usages)] + [footer_view(footer)]
         height = sum(row.frame().size.height for row in rows) + 2 * PADDING
         frame = self._panel.frame()
         # Keep the top edge where it is when the content grows or shrinks.

@@ -25,7 +25,7 @@ def level_of(window: Window) -> int | None:
 class AlertTracker:
     def __init__(self, path: Path | None = None) -> None:
         self._path = path   # None keeps the state in memory only
-        # "provider|window label" -> (lowest level notified, reset time of that window)
+        # "provider|window title" -> (lowest level notified, reset time of that window)
         self._sent: dict[str, tuple[int, datetime | None]] = self._load()
 
     def check(self, usages: list[Usage]) -> list[tuple[str, str]]:
@@ -34,8 +34,8 @@ class AlertTracker:
         before = dict(self._sent)
         for usage in usages:
             for window in usage.windows:
-                key = f"{usage.name}|{window.label}"
-                name = f"{usage.name} {window.label}"
+                key = f"{usage.name}|{window.title}"
+                name = f"{usage.name} {window.title}"
                 level = level_of(window)
                 sent_level, sent_reset = self._sent.get(key, (None, None))
                 was_reset = sent_level is not None and _is_new_window(window, sent_reset, level)

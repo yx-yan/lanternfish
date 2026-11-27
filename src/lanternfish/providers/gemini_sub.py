@@ -35,7 +35,7 @@ USER_AGENT = "antigravity"
 DAEMON_DIR = Path.home() / ".gemini" / "antigravity" / "daemon"
 LOCAL_RPC = "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary"
 LOCAL_TIMEOUT_SECONDS = 3
-WINDOWS = {"5h": "5-hour", "weekly": "weekly"}
+WINDOWS = {"5h": "5-hour", "weekly": "Weekly"}
 
 def read_token() -> str:
     """Return the access token from Antigravity's Keychain entry."""
@@ -92,7 +92,7 @@ def pool_window(data: dict) -> Window:
             lowest = quota
     if lowest is None:
         raise ProviderError("no Gemini quota in response")
-    return Window(label="Gemini", used_percent=(1 - float(lowest["remainingFraction"])) * 100,
+    return Window(label="Models", used_percent=(1 - float(lowest["remainingFraction"])) * 100,
                   resets_at=_iso(lowest.get("resetTime")))
 
 
@@ -105,9 +105,9 @@ def group_name(display_name: str) -> str:
 
 
 def limit_windows(summary: dict) -> list[Window]:
-    """Each model group's 5-hour and weekly limits from the local quota summary, labelled
-    with the group name ("Gemini 5-hour", "Claude & GPT weekly"); Gemini groups first.
-    The Claude & GPT group is Antigravity's own quota, not the Claude or Codex subscription.
+    """Each model group's 5-hour and weekly limits from the local quota summary, Gemini
+    first. Other groups keep their name in Window.group ("Claude & GPT"): Antigravity's own
+    quota, not the Claude or Codex subscription.
     """
     groups = [g for g in (summary.get("response") or summary).get("groups") or []
               if isinstance(g, dict) and g.get("displayName")]
@@ -115,12 +115,14 @@ def limit_windows(summary: dict) -> list[Window]:
     windows = []
     for group in groups:
         buckets = {b.get("window"): b for b in group.get("buckets") or [] if isinstance(b, dict)}
+        name = group_name(group["displayName"])
         for key, label in WINDOWS.items():
             bucket = buckets.get(key)
             if bucket and bucket.get("remainingFraction") is not None:
-                windows.append(Window(label=f"{group_name(group['displayName'])} {label}",
+                windows.append(Window(label=label,
                                       used_percent=(1 - float(bucket["remainingFraction"])) * 100,
-                                      resets_at=_iso(bucket.get("resetTime"))))
+                                      resets_at=_iso(bucket.get("resetTime")),
+                                      group=None if name == "Gemini" else name))
     return windows
 
 
@@ -128,7 +130,7 @@ def parse(data: dict, plan: str | None = None, summary: dict | None = None) -> U
     """Group limits when agy's local server answered; without a Gemini group (agy not
     running), the Gemini models' pool comes first so the menu bar title still shows Gemini."""
     windows = limit_windows(summary) if summary else []
-    if not windows or not windows[0].label.startswith("Gemini"):
+    if not windows or windows[0].group is not None:
         windows.insert(0, pool_window(data))
     return Usage(name="Gemini", short="G", plan=plan, windows=windows)
 
@@ -167,7 +169,7 @@ def fetch() -> Usage:
         data, plan = _fetch_cloud()
     except (ProviderError, NotConfigured):
         windows = limit_windows(summary) if summary else []
-        if windows and windows[0].label.startswith("Gemini"):
+        if windows and windows[0].group is None:
             return Usage(name="Gemini", short="G", plan=_last_plan, windows=windows)
         raise
     _last_plan = plan

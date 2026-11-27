@@ -41,6 +41,12 @@ class Window:
     label: str                     # "5-hour", "Weekly"
     used_percent: float
     resets_at: datetime | None     # timezone-aware
+    group: str | None = None       # a secondary quota pool within the provider, e.g. "Claude & GPT"
+
+    @property
+    def title(self) -> str:
+        """Label with its group, for text that stands alone (CLI, notifications)."""
+        return f"{self.group} {self.label}" if self.group else self.label
 
 
 @dataclass

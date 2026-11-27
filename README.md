@@ -21,16 +21,17 @@ C 84% · X 42% · G 100%
 
 The numbers are what is **left**, the way the official usage pages show it.
 
-Click it for the details: each usage window gets a bar that drains from green to orange to red, with its reset countdown underneath, and API spend appears as plain rows.
+Click it for the details: each service gets its own card with its logo, and each usage window a bar in that service's color, turning orange and then red as it runs low, with the reset countdown beside it. API spend appears in the same cards.
 
 ```
-Claude                                  Pro
-5-hour                             84% left
-████████████████████████████████░░░░░░░░░
-Resets in 4h 29m
-Weekly                             80% left
-...
+╭──────────────────────────────────────╮
+│ ✳ Claude                         Pro │
+│ 5-hour  ▓▓▓▓▓▓▓▓▓▓▓▓▓░░   84%  4h 29m │
+│ Weekly  ▓▓▓▓▓▓▓▓▓▓▓▓░░░   80%  2d 21h │
+╰──────────────────────────────────────╯
 ```
+
+Logos come from [Simple Icons](https://simpleicons.org) (CC0); see `src/lanternfish/icons/README.md`.
 
 - **Menu bar full? Press ⌃⌥L.** A floating panel with the same bars opens over whatever you are doing, no Accessibility permission needed; press it again, Esc, or click elsewhere to close it.
 - **No extra login.** It reuses the sign-ins you already have: Claude Code's token in the macOS Keychain, Codex CLI's `~/.codex/auth.json`, and Antigravity CLI's (`agy`) token in the Keychain for Gemini. Gemini shows the same Gemini 5-hour and weekly limits as Antigravity's model picker, read from `agy`'s local language server while it runs; otherwise it shows the Gemini models' quota (the lowest model left). Antigravity's own Claude and GPT models have separate 5-hour and weekly limits, shown as `Claude & GPT` under Gemini (part of the Google AI plan, not your Claude or Codex subscription; no reset times given).

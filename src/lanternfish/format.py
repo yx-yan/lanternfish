@@ -61,8 +61,8 @@ def resets_text(window: Window, now: datetime | None = None) -> str:
 
 def window_line(window: Window, now: datetime | None = None) -> str:
     if window.resets_at is None:
-        return f"{window.label}  {left_text(window)}"
-    return f"{window.label}  {left_text(window)}  ·  resets in {until(window.resets_at, now)}"
+        return f"{window.title}  {left_text(window)}"
+    return f"{window.title}  {left_text(window)}  ·  resets in {until(window.resets_at, now)}"
 
 
 SYMBOLS = {"USD": "$", "CNY": "¥", "SGD": "S$", "EUR": "€"}
