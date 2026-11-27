@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from . import anthropic_api, claude_sub, codex_sub, deepseek_api, openai_api
+from . import anthropic_api, claude_sub, codex_sub, deepseek_api, gemini_sub, openai_api
 from .base import NetworkError, NotConfigured, ProviderError, TokenExpired, Usage
 
 
@@ -25,6 +25,7 @@ class Provider:
 PROVIDERS: list[Provider] = [
     Provider("Claude", "C", claude_sub.fetch, token_ready=claude_sub.token_ready),
     Provider("Codex", "X", codex_sub.fetch),
+    Provider("Gemini", "G", gemini_sub.fetch, token_ready=gemini_sub.token_ready),
     Provider("Anthropic API", None, anthropic_api.fetch, anthropic_api.ACCOUNT),
     Provider("OpenAI API", None, openai_api.fetch, openai_api.ACCOUNT),
     Provider("DeepSeek API", None, deepseek_api.fetch, deepseek_api.ACCOUNT),

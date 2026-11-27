@@ -139,3 +139,72 @@ def test_until():
 def test_report_shows_errors():
     text = report([Usage(name="Claude", short="C", error="token expired")])
     assert "Claude" in text and "token expired" in text
+
+
+# --- Gemini (Antigravity) ---------------------------------------------------
+
+from lanternfish.providers import gemini_sub  # noqa: E402
+
+
+def _keychain(monkeypatch, token):
+    blob = "go-keyring-base64:" + __import__("base64").b64encode(json.dumps({"token": token}).encode()).decode()
+
+    class Done:
+        stdout = blob + "\n"
+
+    monkeypatch.setattr(gemini_sub.subprocess, "run", lambda *a, **k: Done)
+
+
+def test_gemini_parse_real_response():
+    usage = gemini_sub.parse(load("gemini_models.json"), plan="Pro")
+    assert [w.label for w in usage.windows] == ["Gemini", "Claude & GPT"]
+    assert all(w.used_percent == 0 for w in usage.windows)
+    assert usage.windows[0].resets_at.tzinfo is not None
+    assert (usage.name, usage.short, usage.plan) == ("Gemini", "G", "Pro")
+
+
+def test_gemini_parse_shows_lowest_model_per_group():
+    data = {"models": {
+        "gemini-3-flash": {"displayName": "Flash", "quotaInfo": {"remainingFraction": 0.8}},
+        "gemini-pro": {"displayName": "Pro", "quotaInfo": {"remainingFraction": 0.25,
+                                                           "resetTime": "2026-11-27T09:22:05Z"}},
+        "tab_flash": {"quotaInfo": {"remainingFraction": 0}},          # no displayName: internal
+        "claude-opus": {"displayName": "Opus", "quotaInfo": {"remainingFraction": 0.5}},
+    }}
+    usage = gemini_sub.parse(data)
+    assert [(w.label, w.used_percent) for w in usage.windows] == [("Gemini", 75.0), ("Claude & GPT", 50.0)]
+    assert usage.windows[0].resets_at == datetime(2026, 11, 27, 9, 22, 5, tzinfo=timezone.utc)
+
+
+def test_gemini_parse_empty_response_is_error():
+    with pytest.raises(ProviderError):
+        gemini_sub.parse({"models": {}})
+
+
+def test_gemini_plan_name():
+    assert gemini_sub.plan_name({"paidTier": {"name": "Google AI Pro"}}) == "Pro"
+    assert gemini_sub.plan_name({}) is None
+
+
+def test_gemini_reads_token(monkeypatch):
+    later = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    _keychain(monkeypatch, {"access_token": "t", "expiry": later})
+    assert gemini_sub.read_token() == "t"
+    assert gemini_sub.token_ready()
+
+
+def test_gemini_expired_token(monkeypatch):
+    earlier = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+    _keychain(monkeypatch, {"access_token": "t", "expiry": earlier})
+    with pytest.raises(base.TokenExpired):
+        gemini_sub.read_token()
+    assert not gemini_sub.token_ready()
+
+
+def test_gemini_without_antigravity_is_hidden(monkeypatch):
+    def fail(*a, **k):
+        raise gemini_sub.subprocess.CalledProcessError(44, "security")
+
+    monkeypatch.setattr(gemini_sub.subprocess, "run", fail)
+    with pytest.raises(NotConfigured):
+        gemini_sub.read_token()

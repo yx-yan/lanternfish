@@ -60,7 +60,16 @@ class Usage:
 
 def get_json(url: str, headers: dict[str, str]) -> dict:
     """GET a JSON endpoint, turning network and HTTP failures into ProviderError."""
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **headers})
+    return _send(urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **headers}))
+
+
+def post_json(url: str, body: dict, headers: dict[str, str]) -> dict:
+    """POST a JSON body to a JSON endpoint, with the same error handling as get_json."""
+    return _send(urllib.request.Request(url, data=json.dumps(body).encode(), headers={
+        "User-Agent": USER_AGENT, "Content-Type": "application/json", **headers}))
+
+
+def _send(request: urllib.request.Request) -> dict:
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             return json.load(response)
