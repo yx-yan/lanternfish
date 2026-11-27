@@ -251,3 +251,21 @@ def test_gemini_local_summary_skips_stale_and_missing_daemons(tmp_path, monkeypa
     monkeypatch.setattr(gemini_sub.os, "kill", lambda pid, sig: (_ for _ in ()).throw(ProcessLookupError()))
     assert gemini_sub.local_summary(tmp_path) is None
     assert opened == []   # no request to a daemon that has exited
+
+
+def test_gemini_local_limits_when_cloud_unavailable(monkeypatch):
+    summary = load("gemini_local_quota_summary.json")
+    monkeypatch.setattr(gemini_sub, "local_summary", lambda: summary)
+    monkeypatch.setattr(gemini_sub, "_last_plan", "Pro")
+
+    def expired():
+        raise base.TokenExpired("token expired; open `agy` to renew it")
+
+    monkeypatch.setattr(gemini_sub, "_fetch_cloud", expired)
+    usage = gemini_sub.fetch()
+    assert usage.error is None and usage.plan == "Pro"
+    assert usage.primary.label == "Gemini 5-hour"
+    # Without agy's local server the expiry still shows.
+    monkeypatch.setattr(gemini_sub, "local_summary", lambda: None)
+    with pytest.raises(base.TokenExpired):
+        gemini_sub.fetch()

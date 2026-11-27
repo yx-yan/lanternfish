@@ -97,9 +97,10 @@ def _send(request: urllib.request.Request) -> dict:
 
 
 def retry_after(value: str | None) -> float | None:
-    """Seconds from a Retry-After header; HTTP-date values are ignored."""
+    """Seconds from a Retry-After header; HTTP-date values are ignored, and so is 0, which
+    Anthropic's usage endpoint sends while it is still rate limiting."""
     try:
         seconds = float(value) if value else None
     except ValueError:
         return None
-    return seconds if seconds is not None and seconds >= 0 else None
+    return seconds if seconds is not None and seconds > 0 else None
