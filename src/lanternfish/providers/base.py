@@ -24,6 +24,14 @@ class TokenExpired(ProviderError):
     """The stored token has expired; worth retrying once its owner renews it."""
 
 
+class RateLimited(ProviderError):
+    """HTTP 429: too many requests; retry_after is the server's Retry-After in seconds, if given."""
+
+    def __init__(self, retry_after: float | None = None) -> None:
+        super().__init__("rate limited")
+        self.retry_after = retry_after
+
+
 class NotConfigured(Exception):
     """The provider has no credential set up; it is left out of the menu entirely."""
 
@@ -52,6 +60,9 @@ class Usage:
     error: str | None = None
     network_error: bool = False
     token_expired: bool = False
+    rate_limited: bool = False
+    retry_at: datetime | None = None    # rate limited: when the server said to try again
+    stale_at: datetime | None = None    # rate limited: when the windows/money shown were fetched
 
     @property
     def primary(self) -> Window | None:
@@ -74,6 +85,8 @@ def _send(request: urllib.request.Request) -> dict:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            raise RateLimited(retry_after(exc.headers.get("Retry-After"))) from exc
         if exc.code in (401, 403):
             raise ProviderError(f"auth rejected (HTTP {exc.code})") from exc
         raise ProviderError(f"HTTP {exc.code}") from exc
@@ -81,3 +94,12 @@ def _send(request: urllib.request.Request) -> dict:
         raise NetworkError("network error") from exc
     except json.JSONDecodeError as exc:
         raise ProviderError("bad response") from exc
+
+
+def retry_after(value: str | None) -> float | None:
+    """Seconds from a Retry-After header; HTTP-date values are ignored."""
+    try:
+        seconds = float(value) if value else None
+    except ValueError:
+        return None
+    return seconds if seconds is not None and seconds >= 0 else None

@@ -21,7 +21,7 @@ from AppKit import (
 from Foundation import NSAttributedString
 
 from .format import (
-    MISSING, header_line, left, left_text, money, money_line, plan_text, resets_text, window_line,
+    error_line, header_line, left, left_text, money, money_line, plan_text, resets_text, window_line,
 )
 from .providers.base import Money, Usage, Window
 
@@ -109,7 +109,7 @@ def usage_rows(usages: list[Usage]):
     for usage in usages:
         yield f"{usage.name}:header", header_line(usage), header_view(usage)
         if usage.error:
-            message = f"{MISSING} {usage.error}"
+            message = error_line(usage)
             yield f"{usage.name}:error", message, note_view(message)
         for i, window in enumerate(usage.windows):
             yield f"{usage.name}:{i}", window_line(window), window_view(window)
