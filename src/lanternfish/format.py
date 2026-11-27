@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from .providers.base import Money, Usage, Window
+from .retry import rate_wait
 
 MISSING = "—"
 HOTKEY = "⌃⌥L"
@@ -85,6 +86,17 @@ def updated_line(updated: datetime | None) -> str:
     return f"Updated {updated.strftime('%H:%M') if updated else 'never'}"
 
 
+def error_line(usage: Usage, now: datetime | None = None) -> str:
+    """The note under a failing provider, e.g. 'rate limited; retrying in 2m · data from 12:03'."""
+    if not usage.rate_limited:
+        return f"{MISSING} {usage.error}"
+    wait = rate_wait(usage, now)
+    text = f"rate limited; retrying {'in ' + until(usage.retry_at, now) if wait is not None else 'at next refresh'}"
+    if usage.stale_at:
+        text += f"  ·  data from {usage.stale_at.astimezone().strftime('%H:%M')}"
+    return text if usage.windows or usage.money else f"{MISSING} {text}"
+
+
 def header_line(usage: Usage) -> str:
     return f"{usage.name} ({usage.plan})" if usage.plan else usage.name
 
@@ -95,7 +107,7 @@ def report(usages: list[Usage], now: datetime | None = None) -> str:
     for usage in usages:
         lines.append(header_line(usage))
         if usage.error:
-            lines.append(f"  {MISSING} {usage.error}")
+            lines.append(f"  {error_line(usage, now)}")
         for window in usage.windows:
             lines.append(f"  {window_line(window, now)}")
         for value in usage.money:

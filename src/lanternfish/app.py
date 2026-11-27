@@ -13,7 +13,7 @@ from .alerts import STATE_FILE, AlertTracker
 from .format import HOTKEY, title, updated_line
 from .panel import UsagePanel
 from .views import usage_rows
-from .providers import PROVIDERS, fetch_all, token_renewed
+from .providers import PROVIDERS, fetch_all, keep_last_good, token_renewed
 from .providers.base import Usage
 from .retry import RetrySchedule
 
@@ -34,6 +34,7 @@ class LanternfishApp(rumps.App):
         self._rendered_minute: datetime | None = None
         self._alerts = AlertTracker(path=STATE_FILE)
         self._retry = RetrySchedule()
+        self._last_good: dict[str, Usage] = {}   # shown again while a provider is rate limited
         self._panel = UsagePanel()
         self._hotkey = hotkey.register(hotkey.KEY_L, hotkey.CONTROL | hotkey.OPTION, self._toggle_panel)
         self._render()
@@ -77,6 +78,7 @@ class LanternfishApp(rumps.App):
         with self._lock:
             usages, self._pending = self._pending, None
         if usages is not None:
+            usages = keep_last_good(usages, self._last_good)
             self._usages = usages
             self._updated = datetime.now()
             self._retry.update(usages, time.monotonic())
@@ -89,7 +91,7 @@ class LanternfishApp(rumps.App):
         if self._fetching:
             return  # keep a due retry for the next tick instead of dropping it
         now = time.monotonic()
-        if self._retry.network_due(now):
+        if self._retry.network_due(now) or self._retry.rate_due(now):
             self.refresh()
         elif self._retry.token_due(now):
             self._start(self._check_token)
