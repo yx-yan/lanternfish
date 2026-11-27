@@ -3,7 +3,9 @@ Antigravity CLI (`agy`) keeps in the Keychain (service "gemini", account "antigr
 
 Unofficial endpoints on https://daily-cloudcode-pa.googleapis.com:
 POST v1internal:loadCodeAssist (plan and project), then
-POST v1internal:fetchAvailableModels (remainingFraction and resetTime per model).
+POST v1internal:fetchAvailableModels (remainingFraction and resetTime per model), and
+POST v1internal:retrieveUserQuotaSummary (shared 5-hour and weekly limits per model group,
+without reset times; for now it only lists the Claude and GPT models' group).
 """
 
 from __future__ import annotations
@@ -62,11 +64,13 @@ def plan_name(data: dict) -> str | None:
     return name.removeprefix("Google AI ") if name else None
 
 
-def parse(data: dict, plan: str | None = None) -> Usage:
-    """One window for the Gemini models' pool, showing its lowest model.
+WINDOWS = {"5h": "5-hour", "weekly": "weekly"}
 
-    Antigravity's Claude and GPT models draw on a separate pool, which is left out so it
-    is not mistaken for the Claude and Codex subscriptions.
+
+def parse(data: dict, plan: str | None = None, summary: dict | None = None) -> Usage:
+    """A Gemini window for the Gemini models' pool (its lowest model), then each group's
+    5-hour and weekly limits from the quota summary, labelled with the group name
+    ("Claude & GPT 5-hour") so they are not mistaken for the Claude and Codex rows.
     """
     lowest = None
     for model_id, info in (data.get("models") or {}).items():
@@ -79,11 +83,37 @@ def parse(data: dict, plan: str | None = None) -> Usage:
     if lowest is None:
         raise ProviderError("no Gemini quota in response")
     resets = lowest.get("resetTime")
-    return Usage(name="Gemini", short="G", plan=plan, windows=[Window(
+    usage = Usage(name="Gemini", short="G", plan=plan, windows=[Window(
         label="Gemini",
         used_percent=(1 - float(lowest["remainingFraction"])) * 100,
         resets_at=datetime.fromisoformat(resets.replace("Z", "+00:00")) if resets else None,
     )])
+    usage.windows += group_windows(summary or {})
+    return usage
+
+
+def group_name(display_name: str) -> str:
+    """'Claude and GPT models' -> 'Claude & GPT'."""
+    return display_name.removesuffix(" models").replace(" and ", " & ")
+
+
+def group_windows(summary: dict) -> list[Window]:
+    windows = []
+    for group in summary.get("groups") or []:
+        if not isinstance(group, dict) or not group.get("displayName"):
+            continue
+        buckets = {b.get("window"): b for b in group.get("buckets") or [] if isinstance(b, dict)}
+        for key, label in WINDOWS.items():
+            bucket = buckets.get(key)
+            if not bucket or bucket.get("remainingFraction") is None:
+                continue
+            resets = bucket.get("resetTime")
+            windows.append(Window(
+                label=f"{group_name(group['displayName'])} {label}",
+                used_percent=(1 - float(bucket["remainingFraction"])) * 100,
+                resets_at=datetime.fromisoformat(resets.replace("Z", "+00:00")) if resets else None,
+            ))
+    return windows
 
 
 def fetch() -> Usage:
@@ -96,8 +126,12 @@ def fetch() -> Usage:
             raise ProviderError("no Antigravity project; open `agy` to finish setup")
         data = post_json(BASE + "fetchAvailableModels",
                          {"project": project}, headers)
+        try:
+            summary = post_json(BASE + "retrieveUserQuotaSummary", {"project": project}, headers)
+        except ProviderError:   # only extra windows; the Gemini window still shows
+            summary = None
     except ProviderError as exc:
         if "auth rejected" in str(exc):
             raise ProviderError(f"token rejected; {RELOGIN}") from exc
         raise
-    return parse(data, plan_name(assist))
+    return parse(data, plan_name(assist), summary)
