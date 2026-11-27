@@ -23,9 +23,6 @@ RELOGIN = "open `agy` to renew it"
 # Without Antigravity's user agent the server answers as if the account had no plan.
 USER_AGENT = "antigravity"
 
-# Window label -> model id prefixes it covers; each window shows its lowest model.
-GROUPS = (("Gemini", ("gemini",)), ("Claude & GPT", ("claude", "gpt")))
-
 def read_token() -> str:
     """Return the access token from Antigravity's Keychain entry."""
     try:
@@ -66,28 +63,27 @@ def plan_name(data: dict) -> str | None:
 
 
 def parse(data: dict, plan: str | None = None) -> Usage:
-    usage = Usage(name="Gemini", short="G", plan=plan)
-    models = data.get("models") or {}
-    for label, prefixes in GROUPS:
-        lowest = None
-        for model_id, info in models.items():
-            quota = info.get("quotaInfo") if isinstance(info, dict) else None
-            if (not model_id.startswith(prefixes) or not info.get("displayName")
-                    or not isinstance(quota, dict) or quota.get("remainingFraction") is None):
-                continue
-            if lowest is None or quota["remainingFraction"] < lowest["remainingFraction"]:
-                lowest = quota
-        if lowest is None:
+    """One window for the Gemini models' pool, showing its lowest model.
+
+    Antigravity's Claude and GPT models draw on a separate pool, which is left out so it
+    is not mistaken for the Claude and Codex subscriptions.
+    """
+    lowest = None
+    for model_id, info in (data.get("models") or {}).items():
+        quota = info.get("quotaInfo") if isinstance(info, dict) else None
+        if (not model_id.startswith("gemini") or not info.get("displayName")
+                or not isinstance(quota, dict) or quota.get("remainingFraction") is None):
             continue
-        resets = lowest.get("resetTime")
-        usage.windows.append(Window(
-            label=label,
-            used_percent=(1 - float(lowest["remainingFraction"])) * 100,
-            resets_at=datetime.fromisoformat(resets.replace("Z", "+00:00")) if resets else None,
-        ))
-    if not usage.windows:
-        raise ProviderError("no model quotas in response")
-    return usage
+        if lowest is None or quota["remainingFraction"] < lowest["remainingFraction"]:
+            lowest = quota
+    if lowest is None:
+        raise ProviderError("no Gemini quota in response")
+    resets = lowest.get("resetTime")
+    return Usage(name="Gemini", short="G", plan=plan, windows=[Window(
+        label="Gemini",
+        used_percent=(1 - float(lowest["remainingFraction"])) * 100,
+        resets_at=datetime.fromisoformat(resets.replace("Z", "+00:00")) if resets else None,
+    )])
 
 
 def fetch() -> Usage:
